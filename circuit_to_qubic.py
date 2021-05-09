@@ -25,34 +25,33 @@ def _experiment_to_seq(circuit):
         count += 1
     ops = []
     meas = 0
+
+    # customized for QubiC basis gates
     for instruction in circuit.data:
         inst = instruction[0]
         qubits = [qubit_map[bit] for bit in instruction[1]]
-        if inst.name == 'rx':
-            name = 'X'
-        elif inst.name == 'ry':
-            name = 'Y'
-        elif inst.name == 'rxx':
-            name = 'MS'
-        elif inst.name == 'ms':
-            name = 'MS'
-            qubits = []
+        value = 0
+        
+        if inst.name == 'p':
+            name = 'VZ'
+            value = float(inst.params[0] )
+        elif inst.name == 'delay':
+            name = 'D'
+            value = int(inst.params[0] )
+        elif inst.name == 'sx':
+            name = 'X90'
+        elif inst.name == 'cx':
+            name = 'CNOT'
         elif inst.name == 'measure':
             meas += 1
             continue
         elif inst.name == 'barrier':
             continue
         else:
-            raise Exception("Operation '%s' outside of basis rx, ry, rxx" %
-                            inst.name)
-        exponent = inst.params[0] / pi
-        # hack: split X into X**0.5 . X**0.5
-        if name == 'X' and exponent == 1.0:
-            ops.append((name, float(0.5), qubits))
-            ops.append((name, float(0.5), qubits))
-        else:
-            # (op name, exponent, [qubit index])
-            ops.append((name, float(exponent), qubits))
+            raise Exception("Operation '%s' outside of basis p,sx,cx" %inst.name)
+
+        # (op name, exponent, [qubit index])
+        ops.append((name, value, qubits))
     if not meas:
         raise ValueError('Circuit must have at least one measurements.')
     return json.dumps(ops)

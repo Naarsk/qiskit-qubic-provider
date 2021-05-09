@@ -33,7 +33,7 @@ class QUBICDevice(Backend):
             'local': True,
             'coupling_map': None,
             'description': 'Qubic device',
-            'basis_gates': ['rx', 'ry', 'rxx', 'ms'],
+            'basis_gates': ['p', 'sx', 'cnot'],
             'memory': False,
             'n_qubits': 16,
             'conditional': False,
