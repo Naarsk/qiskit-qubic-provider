@@ -15,7 +15,7 @@
 
 from qiskit.providers.providerutils import filter_backends
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
-from qubic_backend import QUBICDevice, Simulator
+from qubic_backend import QUBICDevice
 
 
 class QUBICProvider():
@@ -46,7 +46,7 @@ class QUBICProvider():
         #self.access_token = access_token
         self.name = 'qubic_provider'
         # Populate the list of QUBIC backends
-        self.backends = BackendService([QUBICDevice(provider=self),Simulator(provider=self)])
+        self.backends = BackendService([QUBICDevice(provider=self)])
 
     def __str__(self):
         return "<QUBICProvider(name={})>".format(self.name)
