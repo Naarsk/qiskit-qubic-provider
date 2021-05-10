@@ -23,7 +23,9 @@ qc.cx(0,1)               #add a cnot gate on the 2 qubits
 qc.measure_all()
 
 #transpile
-trans_qc = transpile(qc, backend)
+#trans_qc = transpile(qc, backend) #OLD
+trans_qc = transpile(qc, backend, basis_gates=['p','sx','cx'], optimization_level=1)
+
 #assemble
 qobj = assemble(trans_qc, shots=100, backend=backend)
 
@@ -34,4 +36,4 @@ job = QUBICJob(backend,'TEST3', qobj=qobj)
 
 #2 part: we "retrieve the results" of the experiment (reading FakeGet.txt)
 print(job.get_counts(circuit=qc)) 
-plot_histogram(job.get_counts())
+plot_histogram(job.get_counts()).savefig('plot.png')
