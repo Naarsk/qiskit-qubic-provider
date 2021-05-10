@@ -22,7 +22,9 @@ qc.cx(0,1)               #add a cnot gate on the 2 qubits
 qc.measure_all()
 
 #transpile
-trans_qc = transpile(qc, backend)
+#trans_qc = transpile(qc, backend) #Not Working
+trans_qc = transpile(qc, backend, basis_gates=['p','sx','cx'], optimization_level=1)
+
 #assemble
 qobj = assemble(trans_qc, shots=100, backend=backend)
 
@@ -30,3 +32,4 @@ qobj = assemble(trans_qc, shots=100, backend=backend)
 job = QUBICJob(backend,'TEST1', qobj=qobj)
 #submit the job for execution (aka print the FakePut.txt)
 job.submit()
+
