@@ -60,7 +60,7 @@ def qobj_to_qubic(qobj):
     gate_exponent: float that specifies the gate_exponent of the operation
     qubits: list of qubits where the operation acts on.
     """
-    out_json = []
+
     if len(qobj.experiments) > 1:
         raise Exception
     for experiment in qobj.experiments:
@@ -70,5 +70,5 @@ def qobj_to_qubic(qobj):
             'repetitions': qobj.config.shots,
             'no_qubits': qobj.config.n_qubits,
         }
-        out_json.append(out_dict)
-    return out_json
+        
+    return out_dict
