@@ -10,6 +10,7 @@ from qubic_provider import QUBICProvider
 from qubic_job import QUBICJob
 import matplotlib.pyplot as plt
 from qiskit.visualization import plot_histogram
+import json
 
 #...!...!....................
 def circA():
@@ -33,13 +34,37 @@ def circB(): # a random non-trivial 2Q circuit
     return bell
 
 #...!...!....................
-def fakeQubicMeasure(inpF='FakePut.txt', outF='FakeGet.txt'): #fake execution of crcits by QubiC
+def fakeQubicMeasure(infile,outfile): #fake execution of crcits by QubiC
+    f=open(infile,'r')
+    j_load=json.load(f)
+    out_dict=j_load[0]
+    f.close()
+    
+    data=out_dict['data']
+    del out_dict['data']
+    
+    samples= [3, 0, 0, 0, 0, 3, 3, 0, 2, 1, 0, 3, 0, 2, 3, 0, 3, 1, 3, 0, 1, 3,
+              0, 3, 0, 1, 0, 0, 3, 3, 2, 0, 0, 0, 3, 2, 3, 3, 3, 0, 3, 0, 0, 3,
+              3, 3, 0, 0, 0, 0, 3, 3, 3, 0, 0, 0, 3, 0, 0, 3, 0, 0, 0, 3, 0, 0,
+              0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 0, 3, 0, 3, 3, 0, 3, 0, 0,
+              3, 3, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0]
+    
+    out_dict['received']=data
+    out_dict['samples']=samples
+    out_dict['status']='finished'
+    
+
+    f=open(outfile,'w')
+    json.dump(out_dict, f)
+    f.close()
+    
+
     ''' open inpF and generate outF:
       compute all possible labels based on 'no_qubits' in inpF
       assign random numbers to all possible labels for Nshots='repetitions'
       save outF
     '''
-    print('QubiC done, outF=',outF)
+    #print('QubiC done, outF=',outF)
         
 
 #=================================
@@ -55,11 +80,13 @@ provider = QUBICProvider()
 backend = provider.backends.qubic_backend
 
 #create the circuit
-qc = circA()
+qc = circB()
 print('qc0');print(qc)
 
+#transpile
 trans_qc = transpile(qc, backend, basis_gates=['p','sx','cx'], optimization_level=1)
 print('qc1');print(trans_qc)
+
 #assemble
 qobj = assemble(trans_qc, shots=100, backend=backend)
 
@@ -68,7 +95,7 @@ job = QUBICJob(backend,'TEST1', qobj=qobj)
 job.submit()  # creates FakePut.txt
 
 #..... part-2....ideally at this point we would run it
-fakeQubicMeasure()  # FakePut.txt --> FakeGet.txt
+fakeQubicMeasure('FakePut.txt','FakeGet.txt')  # FakePut.txt --> FakeGet.txt
 
 #..... parts-3 ... "retrieve the results" of the experiment (reading FakeGet.txt)
 print('got job:',job.get_counts(circuit=qc))
@@ -80,4 +107,3 @@ plot_histogram(job.get_counts(), ax = ax)
 plt.tight_layout()
 fig.savefig('plot.png')
 plt.show()  # this pops-up the canvas
-
