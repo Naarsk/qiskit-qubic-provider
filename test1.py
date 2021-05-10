@@ -71,13 +71,13 @@ job.submit()  # creates FakePut.txt
 fakeQubicMeasure()  # FakePut.txt --> FakeGet.txt
 
 #..... parts-3 ... "retrieve the results" of the experiment (reading FakeGet.txt)
-print(job.get_counts(circuit=qc))
+print('got job:',job.get_counts(circuit=qc))
 
 fig=plt.figure(1,facecolor='white', figsize=(6, 4))
 ax=plt.subplot(1,1,1)
 
 plot_histogram(job.get_counts(), ax = ax)
-fig.savefig('plot.png')
 plt.tight_layout()
-plt.show()
+fig.savefig('plot.png')
+plt.show()  # this pops-up the canvas
 
