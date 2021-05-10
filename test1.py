@@ -56,8 +56,10 @@ backend = provider.backends.qubic_backend
 
 #create the circuit
 qc = circA()
-trans_qc = transpile(qc, backend, basis_gates=['p','sx','cx'], optimization_level=1)
+print('qc0');print(qc)
 
+trans_qc = transpile(qc, backend, basis_gates=['p','sx','cx'], optimization_level=1)
+print('qc1');print(trans_qc)
 #assemble
 qobj = assemble(trans_qc, shots=100, backend=backend)
 
