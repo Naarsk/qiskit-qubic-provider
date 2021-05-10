@@ -13,6 +13,7 @@
 # that they have been altered from the originals.
 
 import warnings
+import json
 
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers import Options
@@ -68,14 +69,20 @@ class QUBICDevice(Backend):
             
         job_id= kwargs.get('id', self.options.ids)
         
-        qubic_json = circuit_to_qubic.circuit_to_qubic(
+        job = qubic_job.QUBICJob(self, job_id, qobj=circuit)
+        
+        qubic_dict = circuit_to_qubic.circuit_to_qubic(
             circuit, shots=out_shots)[0]
-        header = {"JobId": job_id, "SDK": "qiskit"}
+        
+        #include the header in a smarter way
+        qubic_dict['id']=job_id
+        qubic_dict['SDK']="qiskit"
+        
+        out_json=[]
+        out_json.append(qubic_dict)
         
         f=open('FakePut.txt',"w")
-        f.write('{}\n {}\n'.format(header, qubic_json))
+        json.dump(out_json, f)
         f.close()
-        
-        job = qubic_job.QUBICJob(self, job_id, qobj=circuit)
         
         return job
