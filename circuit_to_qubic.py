@@ -1,4 +1,6 @@
-# -*- coding: utf-8 -*-
+
+
+    which is a list of sequential quantum operations, each operation defined# -*- coding: utf-8 -*-
 
 # This code is part of Qiskit.
 #
@@ -13,9 +15,6 @@
 # that they have been altered from the originals.
 
 import json
-
-from numpy import pi
-
 
 def _experiment_to_seq(circuit):
     count = 0
@@ -70,7 +69,6 @@ def circuit_to_qubic(circuits, shots=100):
     gate_exponent: float that specifies the gate_exponent of the operation
     qubits: list of qubits where the operation acts on.
     """
-    out_json = []
     if isinstance(circuits, list):
         if len(circuits) > 1:
             raise Exception
@@ -81,5 +79,5 @@ def circuit_to_qubic(circuits, shots=100):
         'repetitions': shots,
         'no_qubits': circuits.num_qubits,
     }
-    out_json.append(out_dict)
-    return out_json
+
+    return out_dict
