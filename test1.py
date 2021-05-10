@@ -4,13 +4,15 @@ Created on Wed Apr 21 12:05:36 2021
 
 @author: Leonardo
 """
-#Importing standard Qiskit libraries
+import numpy as np
 from qiskit import QuantumCircuit, transpile, assemble
-from qubic_provider import QUBICProvider
-from qubic_job import QUBICJob
 import matplotlib.pyplot as plt
 from qiskit.visualization import plot_histogram
 import json
+import sys,os
+sys.path.append(os.path.abspath("qubicProvider/"))
+from qubic_provider import QUBICProvider
+from qubic_job import QUBICJob
 
 #...!...!....................
 def circA():
@@ -21,7 +23,14 @@ def circA():
     return qc
 
 #...!...!....................
-def circB(): # a random non-trivial 2Q circuit
+def circB():
+    qc = QuantumCircuit(1)
+    qc.h(0)
+    qc.measure_all()
+    return qc
+
+#...!...!....................
+def circC(): # a random non-trivial 2Q circuit
     bell = QuantumCircuit(2)
     bell.h(0)
     bell.t(1)
@@ -35,21 +44,31 @@ def circB(): # a random non-trivial 2Q circuit
 
 #...!...!....................
 def fakeQubicMeasure(infile,outfile): #fake execution of crcits by QubiC
+    ''' open inpF and generate outF:
+      compute all possible labels (NS)  based on 'no_qubits' in inpF
+      assign random numbers to all possible labels for Nshots='repetitions'
+      save outF
+    '''
+
     f=open(infile,'r')
     j_load=json.load(f)
     out_dict=j_load[0]
     f.close()
     
-    data=out_dict['data']
+    circ_data=out_dict['data'] # can be used to define QubiC circuit
     del out_dict['data']
+    NQ=out_dict["no_qubits"]
+    NS=1<<NQ  # um of unique bit-strings
+    shots=out_dict["repetitions"]
     
-    samples= [3, 0, 0, 0, 0, 3, 3, 0, 2, 1, 0, 3, 0, 2, 3, 0, 3, 1, 3, 0, 1, 3,
-              0, 3, 0, 1, 0, 0, 3, 3, 2, 0, 0, 0, 3, 2, 3, 3, 3, 0, 3, 0, 0, 3,
-              3, 3, 0, 0, 0, 0, 3, 3, 3, 0, 0, 0, 3, 0, 0, 3, 0, 0, 0, 3, 0, 0,
-              0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 0, 3, 0, 3, 3, 0, 3, 0, 0,
-              3, 3, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0]
+    print('fake QubicMeasure NQ=%d, NS=%d shots=%d'%(NQ,NS,shots))
+
+    # random measurements
     
-    out_dict['received']=data
+    samples=np.random.randint(NS,size=shots).tolist()
+    #print('ss',samples,type(samples[0]))
+     
+    out_dict['received']=circ_data
     out_dict['samples']=samples
     out_dict['status']='finished'
     
@@ -59,11 +78,6 @@ def fakeQubicMeasure(infile,outfile): #fake execution of crcits by QubiC
     f.close()
     
 
-    ''' open inpF and generate outF:
-      compute all possible labels based on 'no_qubits' in inpF
-      assign random numbers to all possible labels for Nshots='repetitions'
-      save outF
-    '''
     #print('QubiC done, outF=',outF)
         
 
@@ -79,9 +93,11 @@ provider = QUBICProvider()
 #set the backend
 backend = provider.backends.qubic_backend
 
-#create the circuit
-qc = circB()
-print('qc0');print(qc)
+#create 1 circuit
+qc = circA();print('qc0');print(qc)
+
+#create many circuits
+#qcV=[circA(),circB()]
 
 #transpile
 trans_qc = transpile(qc, backend, basis_gates=['p','sx','cx'], optimization_level=1)

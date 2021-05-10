@@ -1,7 +1,3 @@
-
-
-    which is a list of sequential quantum operations, each operation defined# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -60,11 +56,12 @@ def circuit_to_qubic(circuits, shots=100):
     """Return a list of json payload strings for each experiment in a qobj
 
     The output json format of an experiment is defined as follows:
-        [[op_string, gate_exponent, qubits]]
+    INCORRECT INFO:    [[op_string, gate_exponent, qubits]]
 
     which is a list of sequential quantum operations, each operation defined
     by:
 
+    INCORRECT INFO: 
     op_string: str that specifies the operation type, either "X","Y","MS"
     gate_exponent: float that specifies the gate_exponent of the operation
     qubits: list of qubits where the operation acts on.
