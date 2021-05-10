@@ -161,15 +161,22 @@ class QUBICJob(JobV1):
             status = JobStatus.ERROR
         return status
 
+
     def submit(self):
         """Submits a job for execution.
         """
         if not self.qobj or not self._job_id:
             raise Exception
             
-        header = {"JobId": self._job_id, "SDK": "qiskit"}
+        qubic_dict = qobj_to_qubic(self.qobj)
         
-        qubic_json = qobj_to_qubic(self.qobj)  
+        #include the header
+        qubic_dict['id']=self._job_id
+        qubic_dict['SDK']="qiskit"
+        
+        out_json=[]
+        out_json.append(qubic_dict)
+        
         f=open('FakePut.txt',"w")
-        f.write('{}\n {}\n'.format(header, qubic_json))
+        json.dump(out_json, f)
         f.close()
