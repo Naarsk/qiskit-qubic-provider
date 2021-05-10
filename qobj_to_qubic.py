@@ -14,39 +14,34 @@
 
 import json
 
-from numpy import pi
+#from numpy import pi
 
-
+#qubic basis
 def _experiment_to_seq(experiment):
     ops = []
     meas = 0
     for inst in experiment.instructions:
-        if inst.name == 'rx':
-            name = 'X'
-        elif inst.name == 'rz':
-            name = 'Z'
-        elif inst.name == 'rxx':
-            name = 'MS'
-        elif inst.name == 'ms':
-            name = 'MS'
-            inst.qubits = []
+        if inst.name == 'p':
+            name = 'VZ'
+            value = float(inst.params[0] )
+        elif inst.name == 'delay':
+            name = 'D'
+            value = int(inst.params[0] )
+        elif inst.name == 'sx':
+            name = 'X90'
+        elif inst.name == 'cx':
+            name = 'CNOT'
         elif inst.name == 'measure':
             meas += 1
             continue
         elif inst.name == 'barrier':
             continue
         else:
-            raise Exception("Operation '%s' outside of basis rx, rz, rxx" %
-                            inst.name)
-        exponent = inst.params[0] / pi
+            raise Exception("Operation '%s' outside of basis p,sx,cx" %inst.name)
 
-        # hack: split X into X**0.5 . X**0.5
-        if name == 'X' and exponent == 1.0:
-            ops.append((name, float(0.5), inst.qubits))
-            ops.append((name, float(0.5), inst.qubits))
-        else:
-            # (op name, exponent, [qubit index])
-            ops.append((name, float(exponent), inst.qubits))
+
+        ops.append((name, value, inst.qubits))
+        
     if not meas:
         raise ValueError('Circuit must have at least one measurements.')
     return json.dumps(ops)
