@@ -66,15 +66,16 @@ def circuit_to_qubic(circuits, shots=100):
     gate_exponent: float that specifies the gate_exponent of the operation
     qubits: list of qubits where the operation acts on.
     """
-    if isinstance(circuits, list):
-        if len(circuits) > 1:
-            raise Exception
-        circuits = circuits[0]
-    seqs = _experiment_to_seq(circuits)
-    out_dict = {
-        'data': seqs,
-        'repetitions': shots,
-        'no_qubits': circuits.num_qubits,
-    }
-
-    return out_dict
+    #if isinstance(circuits, list):
+    #    if len(circuits) > 1:
+    #       raise Exception
+    out_json=[]
+    for circuit in circuits:
+        seqs = _experiment_to_seq(circuit)
+        out_dict = {
+            'data': seqs,
+            'repetitions': shots,
+            'no_qubits': circuits.num_qubits,
+        }
+        out_json.append(out_dict)
+    return out_json
