@@ -52,29 +52,31 @@ def fakeQubicMeasure(infile,outfile): #fake execution of crcits by QubiC
 
     f=open(infile,'r')
     j_load=json.load(f)
-    out_dict=j_load[0]
     f.close()
+    j_out=[]
     
-    circ_data=out_dict['data'] # can be used to define QubiC circuit
-    del out_dict['data']
-    NQ=out_dict["no_qubits"]
-    NS=1<<NQ  # um of unique bit-strings
-    shots=out_dict["repetitions"]
+    for out_dict in j_load:
+        circ_data=out_dict['data'] # can be used to define QubiC circuit
+        del out_dict['data']
+        NQ=out_dict["no_qubits"]
+        NS=1<<NQ  # um of unique bit-strings
+        shots=out_dict["repetitions"]
+        
+        print('fake QubicMeasure NQ=%d, NS=%d shots=%d'%(NQ,NS,shots))
     
-    print('fake QubicMeasure NQ=%d, NS=%d shots=%d'%(NQ,NS,shots))
-
-    # random measurements
-    
-    samples=np.random.randint(NS,size=shots).tolist()
-    #print('ss',samples,type(samples[0]))
-     
-    out_dict['received']=circ_data
-    out_dict['samples']=samples
-    out_dict['status']='finished'
-    
+        # random measurements
+        
+        samples=np.random.randint(NS,size=shots).tolist()
+        #print('ss',samples,type(samples[0]))
+         
+        out_dict['received']=circ_data
+        out_dict['samples']=samples
+        out_dict['status']='finished'
+        
+        j_out.append(out_dict)
 
     f=open(outfile,'w')
-    json.dump(out_dict, f)
+    json.dump(j_out, f)
     f.close()
     
 
@@ -94,16 +96,21 @@ provider = QUBICProvider()
 backend = provider.backends.qubic_backend
 
 #create 1 circuit
-qc = circA();print('qc0');print(qc)
+#qc = circA();print('qc0');print(qc)
 
 #create many circuits
-#qcV=[circA(),circB()]
+qcV=[circA(),circB(),circC()];
+for circ in qcV:
+    print(circ)
 
-#transpile
-trans_qc = transpile(qc, backend, basis_gates=['p','sx','cx'], optimization_level=1)
-print('qc1');print(trans_qc)
+###################################TRANSPILE
+#trans_qc = transpile(qc, backend, basis_gates=['p','sx','cx'], optimization_level=1)
+#print('qc1');print(trans_qc)
 
-#assemble
+trans_qc = transpile(qcV, backend, basis_gates=['p','sx','cx'], optimization_level=1)
+print('qcV');print(trans_qc)
+
+###################################ASSEMBLE
 qobj = assemble(trans_qc, shots=100, backend=backend)
 
 #..... part-1 ....create a job instance
@@ -114,12 +121,15 @@ job.submit()  # creates FakePut.txt
 fakeQubicMeasure('FakePut.txt','FakeGet.txt')  # FakePut.txt --> FakeGet.txt
 
 #..... parts-3 ... "retrieve the results" of the experiment (reading FakeGet.txt)
-print('got job:',job.get_counts(circuit=qc))
+#print('got job:',job.get_counts(circuit=qc))
+data=[job.get_counts(circuit=0),job.get_counts(circuit=1),job.get_counts(circuit=2)]
+
+print('got job:',data)
 
 fig=plt.figure(1,facecolor='white', figsize=(6, 4))
 ax=plt.subplot(1,1,1)
 
-plot_histogram(job.get_counts(), ax = ax)
+plot_histogram(data, ax = ax)
 plt.tight_layout()
 fig.savefig('plot.png')
 plt.show()  # this pops-up the canvas
