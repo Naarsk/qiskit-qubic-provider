@@ -71,15 +71,14 @@ class QUBICDevice(Backend):
         
         job = qubic_job.QUBICJob(self, job_id, qobj=circuit)
         
-        qubic_dict = circuit_to_qubic.circuit_to_qubic(
-            circuit, shots=out_shots)[0]
-        
-        #include the header in a smarter way
-        qubic_dict['id']=job_id
-        qubic_dict['SDK']="qiskit"
-        
         out_json=[]
-        out_json.append(qubic_dict)
+
+        for qubic_dict in circuit_to_qubic.circuit_to_qubic(
+                circuit, shots=out_shots):
+            qubic_dict['id']=job_id
+            qubic_dict['SDK']="qiskit"
+            
+            out_json.append(qubic_dict)
         
         f=open('FakePut.txt',"w")
         json.dump(out_json, f)
