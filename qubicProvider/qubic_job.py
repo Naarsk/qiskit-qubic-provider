@@ -84,19 +84,20 @@ class QUBICJob(JobV1):
                 counts[h_result] += 1
         return counts
 
-    def result(self):
+    def result(self,circuit):
         """Get the result data of a circuit.
 
-        Parameters: none
+        Parameters: circuit (int): The index of the circuit.
 
-        Returns:
-            Result: Result object.
+        Returns:    Result: Result object.
         """
         
-        result = None
         f=open("./FakeGet.txt","r")
-        result =json.loads(f.read())
+        j_load =json.loads(f.read())
         f.close()        
+        
+        result=j_load[circuit]
+        
         if isinstance(self.qobj, QasmQobj):
             results = [
                 {
@@ -117,21 +118,23 @@ class QUBICJob(JobV1):
                                'name': self.qobj.name}
                 }]
             qobj_id = id(self.qobj)
+            
 
         return Result.from_dict({
-            'results': results,
-            'backend_name': self._backend._configuration.backend_name,
-            'backend_version': self._backend._configuration.backend_version,
-            'qobj_id': qobj_id,
-            'success': True,
-            'job_id': self._job_id,
-        })
+        'results': results,
+        'backend_name': self._backend._configuration.backend_name,
+        'backend_version': self._backend._configuration.backend_version,
+        'qobj_id': qobj_id,
+        'success': True,
+        'job_id': self._job_id,
+    })
 
-    def get_counts(self, circuit=None, timeout=None, wait=5):
+
+    def get_counts(self, circuit):
         """Get the histogram data of a measured circuit.
 
         Parameters:
-            circuit (str or QuantumCircuit or int or None): The index of the circuit.
+            circuit (int): The index of the circuit.
             timeout (float): A timeout for trying to get the counts.
             wait (float): A specified wait time between counts retrival
                           attempts.
@@ -139,7 +142,7 @@ class QUBICJob(JobV1):
         Returns:
             dict: Dictionary of string : int key-value pairs.
         """
-        return self.result().get_counts(circuit)
+        return self.result(circuit).get_counts(None)
 
     def cancel(self):
         pass
@@ -168,14 +171,13 @@ class QUBICJob(JobV1):
         if not self.qobj or not self._job_id:
             raise Exception
             
-        qubic_dict = qobj_to_qubic(self.qobj)
-        
-        #include the header
-        qubic_dict['id']=self._job_id
-        qubic_dict['SDK']="qiskit"
-        
+        in_json = qobj_to_qubic(self.qobj)
         out_json=[]
-        out_json.append(qubic_dict)
+        
+        for qubic_dict in in_json:
+            qubic_dict['id']=self._job_id
+            qubic_dict['SDK']="qiskit"
+            out_json.append(qubic_dict)
         
         f=open('FakePut.txt',"w")
         json.dump(out_json, f)
