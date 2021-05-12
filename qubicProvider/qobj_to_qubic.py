@@ -61,8 +61,9 @@ def qobj_to_qubic(qobj):
     qubits: list of qubits where the operation acts on.
     """
 
-    if len(qobj.experiments) > 1:
-        raise Exception
+    #if len(qobj.experiments) > 1:
+    #    raise Exception
+    out_json=[]
     for experiment in qobj.experiments:
         seqs = _experiment_to_seq(experiment)
         out_dict = {
@@ -70,5 +71,5 @@ def qobj_to_qubic(qobj):
             'repetitions': qobj.config.shots,
             'no_qubits': qobj.config.n_qubits,
         }
-        
-    return out_dict
+        out_json.append(out_dict)
+    return out_json
