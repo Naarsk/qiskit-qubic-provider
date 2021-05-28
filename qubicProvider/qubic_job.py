@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=protected-access
-
 import json
 
 from qiskit.providers import JobV1
@@ -84,10 +82,10 @@ class QUBICJob(JobV1):
                 counts[h_result] += 1
         return counts
 
-    def result(self,circuit):
+    def result(self):
         """Get the result data of a circuit.
 
-        Parameters: circuit (int): The index of the circuit.
+        Parameters: none
 
         Returns:    Result: Result object.
         """
@@ -96,28 +94,28 @@ class QUBICJob(JobV1):
         j_load =json.loads(f.read())
         f.close()        
         
-        result=j_load[circuit]
-        
-        if isinstance(self.qobj, QasmQobj):
-            results = [
-                {
-                    'success': True,
-                    'shots': len(result['samples']),
-                    'data': {'counts': self._format_counts(result['samples'])},
-                    'header': {'memory_slots': self.qobj.config.memory_slots,
-                               'name': self.qobj.experiments[0].header.name}
-                }]
-            qobj_id = self.qobj.qobj_id
-        else:
-            results = [
-                {
-                    'success': True,
-                    'shots': len(result['samples']),
-                    'data': {'counts': self._format_counts(result['samples'])},
-                    'header': {'memory_slots': self.qobj.num_clbits,
-                               'name': self.qobj.name}
-                }]
-            qobj_id = id(self.qobj)
+        results=[]
+        for result in j_load:
+            if isinstance(self.qobj, QasmQobj):
+                results.append(
+                    {
+                        'success': True,
+                        'shots': len(result['samples']),
+                        'data': {'counts': self._format_counts(result['samples'])},
+                        'header': {'memory_slots': self.qobj.config.memory_slots,
+                                   'name': self.qobj.experiments[0].header.name}
+                    })
+                qobj_id = self.qobj.qobj_id
+            else:
+                results.append(
+                    {
+                        'success': True,
+                        'shots': len(result['samples']),
+                        'data': {'counts': self._format_counts(result['samples'])},
+                        'header': {'memory_slots': self.qobj.num_clbits,
+                                   'name': self.qobj.name}
+                    })
+                qobj_id = id(self.qobj)
             
 
         return Result.from_dict({
@@ -130,7 +128,7 @@ class QUBICJob(JobV1):
     })
 
 
-    def get_counts(self, circuit):
+    def get_counts(self, *experiment):
         """Get the histogram data of a measured circuit.
 
         Parameters:
@@ -142,7 +140,7 @@ class QUBICJob(JobV1):
         Returns:
             dict: Dictionary of string : int key-value pairs.
         """
-        return self.result(circuit).get_counts(None)
+        return self.result().get_counts(*experiment)
 
     def cancel(self):
         pass
