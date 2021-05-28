@@ -5,7 +5,7 @@ Created on Wed Apr 21 12:05:36 2021
 @author: Leonardo
 """
 import numpy as np
-from qiskit import QuantumCircuit, transpile, assemble
+from qiskit import QuantumCircuit, transpile, assemble, qasm
 import matplotlib.pyplot as plt
 from qiskit.visualization import plot_histogram
 import json
@@ -110,6 +110,14 @@ for circ in qcV:
 trans_qc = transpile(qcV, backend, basis_gates=['p','sx','cx'], optimization_level=1)
 print('qcV');print(trans_qc)
 
+
+###################################WRITE OPENQASM
+f=open('QasmPut.txt','w')
+for circ in qcV:
+    f.write('{}\n'.format(circ.qasm()))
+f.close()
+    
+    
 ###################################ASSEMBLE
 qobj = assemble(trans_qc, shots=100, backend=backend)
 
