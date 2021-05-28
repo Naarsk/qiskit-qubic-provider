@@ -5,14 +5,13 @@ Created on Wed Apr 21 12:05:36 2021
 @author: Leonardo
 """
 import numpy as np
-from qiskit import QuantumCircuit, transpile, assemble, qasm
+from qiskit import QuantumCircuit, transpile
 import matplotlib.pyplot as plt
 from qiskit.visualization import plot_histogram
 import json
 import sys,os
 sys.path.append(os.path.abspath("qubicProvider/"))
 from qubic_provider import QUBICProvider
-from qubic_job import QUBICJob
 
 #...!...!....................
 def circA():
@@ -118,19 +117,25 @@ for circ in qcV:
 f.close()
     
     
-###################################ASSEMBLE
-qobj = assemble(trans_qc, shots=100, backend=backend)
+# =============================================================================
+# ###################################ASSEMBLE
+# qobj = assemble(trans_qc, shots=100, backend=backend)
+# 
+# #..... part-1 ....create a job instance
+# job = QUBICJob(backend,'TEST1', qobj=qobj)
+# job.submit()  # creates FakePut.txt
+# 
+# =============================================================================
 
-#..... part-1 ....create a job instance
-job = QUBICJob(backend,'TEST1', qobj=qobj)
-job.submit()  # creates FakePut.txt
+########## Replace assemble+submit
+job=backend.run(trans_qc, job_id='test1_id', shots=100)   #assemble and submit (creates FakePut.txt)
 
 #..... part-2....ideally at this point we would run it
 fakeQubicMeasure('FakePut.txt','FakeGet.txt')  # FakePut.txt --> FakeGet.txt
 
 #..... parts-3 ... "retrieve the results" of the experiment (reading FakeGet.txt)
 #print('got job:',job.get_counts(circuit=qc))
-data=[job.get_counts(circuit=0),job.get_counts(circuit=1),job.get_counts(circuit=2)]
+data=job.get_counts()
 
 print('got job:',data)
 
@@ -141,3 +146,4 @@ plot_histogram(data, ax = ax)
 plt.tight_layout()
 fig.savefig('plot.png')
 plt.show()  # this pops-up the canvas
+
