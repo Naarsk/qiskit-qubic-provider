@@ -13,15 +13,14 @@
 # that they have been altered from the originals.
 
 import warnings
-import json
 
+from qiskit import assemble
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers import Options
 from qiskit.providers.models import BackendConfiguration
 from qiskit.util import deprecate_arguments
 
 import qubic_job
-import circuit_to_qubic
 
 
 class QUBICDevice(Backend):
@@ -60,28 +59,18 @@ class QUBICDevice(Backend):
     @deprecate_arguments({'qobj': 'circuit'})
     def run(self, circuit, **kwargs):
         for kwarg in kwargs:
-            if kwarg != 'shots' or kwarg != 'id':
+            if kwarg != 'shots' or kwarg != 'job_id':
                 warnings.warn(
                     "Option %s is not used by this backend" % kwarg,
                     UserWarning, stacklevel=2)
             
-        out_shots = kwargs.get('shots', self.options.shots)
-            
-        job_id= kwargs.get('id', self.options.ids)
+        out_shots = kwargs.get('shots', self.options.shots)            
+        job_id= kwargs.get('job_id', self.options.ids)
         
-        job = qubic_job.QUBICJob(self, job_id, qobj=circuit)
-        
-        out_json=[]
+        qobj = assemble(circuit, shots=out_shots, backend=self)
 
-        for qubic_dict in circuit_to_qubic.circuit_to_qubic(
-                circuit, shots=out_shots):
-            qubic_dict['id']=job_id
-            qubic_dict['SDK']="qiskit"
-            
-            out_json.append(qubic_dict)
-        
-        f=open('FakePut.txt',"w")
-        json.dump(out_json, f)
-        f.close()
+        job = qubic_job.QUBICJob(self, job_id, qobj)
+                
+        job.submit()
         
         return job
