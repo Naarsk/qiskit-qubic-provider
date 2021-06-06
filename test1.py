@@ -112,7 +112,7 @@ print('qcV');print(trans_qc)
 
 ###################################WRITE OPENQASM
 f=open('QasmPut.txt','w')
-for circ in qcV:
+for circ in trans_qc:
     f.write('{}\n'.format(circ.qasm()))
 f.close()
     
