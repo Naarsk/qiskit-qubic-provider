@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
-"""
-Created on Wed Apr 21 12:05:36 2021
 
-@author: Leonardo
-"""
-
-from qiskit import QuantumCircuit, transpile
-from qiskit.assembler.assemble_circuits import _assemble_circuit
-from qiskit.assembler import RunConfig
+from qiskit import QuantumCircuit
+from qiskit.converters import circuit_to_dag, dag_to_circuit
+from pprint import pprint
 import sys,os
+import numpy as np
 sys.path.append(os.path.abspath("qubicProvider/"))
 from qubic_provider import QUBICProvider
 #from qubic_job import QUBICJob
@@ -31,74 +27,98 @@ def circB():
     return qc
 
 #...!...!....................
-def circC(): # a random non-trivial 2Q circuit
+def circD(): # a random non-trivial 2Q circuit
     bell = QuantumCircuit(2)
     bell.h(0)
+    bell.h(0)
     bell.t(1)
-    #bell.delay(4) # unit is dt
+    bell.barrier()
     bell.cx(0,1)
-    #bell.delay(4) # unit is dt
-    bell.x(0)
-    bell.h(1)
+    bell.barrier()
     bell.measure_all()
     return bell
+
+#...!...!..................
+def circE():
+  qc = QuantumCircuit(3,3)
+  qc.sx(0)
+  qc.s(1)
+  qc.h(0)
+  qc.cx(0,1)
+  qc.p(np.pi/3,qubit=2)
+  qc.cx(1,2)
+  qc.sx(0)
+  qc.cx(0,1)
+  qc.barrier([0, 1,2])
+  for i in range(3): qc.measure(i,i)
+  return qc
+
+#...!...!..................
+def print_dag_layers(qdag):
+  dagLay=qdag.layers()
+  print('Show %d layers as lsist of gates, format: gateName qubits[] params[]; '%qdag.properties()['depth'])
+  for k,lay in enumerate(dagLay):
+    print('\n%d cycle: '%k,end='')
+    for op in lay['graph'].op_nodes():
+      qL=[qub._index for qub in  op.qargs]
+      parV=[ float('%.6f'%v)  for v in op._op._params]      
+      print('  ',op.name, 'q'+str(qL), parV,';', end='')
+
+  print('\nend-of-cycles') 
+
+
+#...!...!..................
+def _dag_to_qubic(qdag):
+    dagLay=qdag.layers()
+    qubic_circ=[]
+    nqubit=qdag.properties()['qubits']
+    prephases=np.zeros(nqubit)
+
+    for k,lay in enumerate(dagLay):
+        
+        cycle=[]
+
+        for op in lay['graph'].op_nodes(): 
+               
+            qL=[qub._index for qub in  op.qargs]
+            parV=[ float('%.6f'%v)  for v in op._op._params]      
+            
+            if op.name=='p':    
+                prephases[qL[0]]=prephases[qL[0]]+parV   #sums up consecutive phases
+                
+            elif op.name=='cx':
+                cycle.append({'name':op.name,'qubitid' : 'q'+str(qL), 'para':[{'prephase': prephases[qL[0]]},{'prephase': prephases[qL[1]]}]})
+                prephases[qL[0]]=0
+                prephases[qL[1]]=0
+                
+            else:
+                cycle.append({'name':op.name,'qubitid' : 'q'+str(qL), 'para':{'prephase': prephases[qL[0]]}})
+                prephases[qL[0]]=0
+                
+        qubic_circ.append({'cycle':cycle})
+    
+    return qubic_circ
 
 
 def _qasm_to_qubic(in_file,out_file):  
 
-    #CAN'T HANDLE CYCLES, NOR MULTIPLE OPENQASM IN A SINGLE FILE, NOR DELAYS
-    #FIRST TURNS QASM INTO EXPERIMENT AND THEN EXPERIMENT INTO QUBIC
+    #CAN'T HANDLE MULTIPLE OPENQASM IN A SINGLE FILE
     
-    new_qc= QuantumCircuit.from_qasm_file(in_file)    
-    run_config=RunConfig()                                  #empty run configuration
-    experiment=_assemble_circuit(new_qc,run_config)[0]      #experiment is a list of gates
-    qubic_inst=_experiment_to_qubic(experiment)
+    qc= QuantumCircuit.from_qasm_file(in_file)    
+    qdag = circuit_to_dag(qc)    
+    qubic_circ=_dag_to_qubic(qdag)              #circuit in qubic format
 
-    print(qubic_inst)
+
+    print('\nqc in qubic format')
+
+    for cycle in qubic_circ:
+        print(cycle)
 
     f=open(out_file,'w')
-    f.write(str(qubic_inst))
+    f.write(str(qubic_circ))
     f.close()
 
     return
-
-def _experiment_to_qubic(experiment):
-        
-    list2=[]				#list2 is A CYCLE
-    prephase=0
-    for inst in experiment.instructions:
-        
-        if inst.name == 'p':
-            name = 'VZ'
-            prephase = float(inst.params[0] )
-        elif inst.name == 'barrier':
-            pass
-        elif inst.name == 'delay':
-            pass
-        else:
-            if inst.name == 'sx':
-                name = 'X90'
-            elif inst.name == 'cx':
-                name = 'CNOT'
-            elif inst.name == 'measure':
-                name = 'MEAS'
-# =============================================================================
-#             elif inst.name == 'delay':
-#                 name = 'D'
-#                 value = int(inst.params[0] )
-# =============================================================================
-            else:
-                raise Exception("Operation '%s' outside of basis p,sx,cx" %inst.name)
-				
-            dict1={'name':name,'qubitid' : inst.qubits, 'para':{'prephase': prephase}}
-            prephase=0
-            list1=[]				#max number of elements: n_qubit #still i dont know how many to put 
-            list1.append(dict1)
-				
-            dict2={'gates': list1}
-            list2.append(dict2)
-
-    return list2
 
 #=================================
 #=================================
@@ -112,14 +132,27 @@ provider = QUBICProvider()
 #set the backend
 backend = provider.backends.qubic_backend
 
-#create the list of circuits
-qcV=circC();
-print(qcV)
+#create the single circuit
+qc = circE()
+print('qc from Qiskit')
+print(qc)
+
+qdag = circuit_to_dag(qc)
+#qdag.draw()  # pop-up persistent ImagViewer  (not from Matplotlib)
+
+print('\nList DAG  properties:')
+pprint(qdag.properties())
+
+print('\nDecomposition of circuit DAG into cycles')
+print_dag_layers(qdag)
 
 
+#trans_qc = transpile(qcV, backend, basis_gates=['p','sx','cx'], optimization_level=1)
+print('\nOpenQASM format of circuit')
+qc.qasm(formatted=True, filename='QasmPut.txt')  	#write QasmPut
 
-trans_qc = transpile(qcV, backend, basis_gates=['p','sx','cx'], optimization_level=1)
-trans_qc.qasm(formatted=True, filename='QasmPut.txt')  	#write QasmPut
-new_qc= QuantumCircuit.from_qasm_file('QasmPut.txt')    #read QasmPut, print circuit
+print('\nqc from OpenQASM file')
+new_qc=QuantumCircuit.from_qasm_file('QasmPut.txt')
 print(new_qc)
-_qasm_to_qubic('QasmPut.txt','QubicPut.txt')			#read QasmPut, write QubicPut
+
+_qasm_to_qubic('QasmPut.txt','QubicPut.txt')		#read QasmPut, write QubicPut (also print on screen)
