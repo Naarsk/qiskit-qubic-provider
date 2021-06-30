@@ -26,6 +26,47 @@ def circB():
     qc.measure_all()
     return qc
 
+def circB1():
+  qc = QuantumCircuit(3)
+  for i in range(2):
+    for iq in range(3):
+      qc.sx(iq)
+      qc.p(0.2,qubit=iq)
+  qc.cx(0,1)
+  for iq in range(3):
+      qc.sx(iq)
+  return qc
+
+
+def circB2():
+  qc = QuantumCircuit(3)
+  qc.p(0.2,qubit=1) 
+  for i in range(2):
+    for iq in range(3):
+      qc.sx(iq)
+      qc.p(0.2,qubit=iq)
+  qc.cx(0,1)
+  for iq in range(3):
+      qc.sx(iq)
+  return qc
+
+
+
+#...!...!....................
+def circC():
+  qc = QuantumCircuit(2)
+  qc.p(0.33,qubit=1)
+  for iq in range(2): qc.sx(iq)  
+  for i in range(3): qc.p(0.1*i,qubit=0)
+  for iq in range(2): qc.sx(iq)
+  qc.sx(1)
+  qc.p(0.22,qubit=0)
+  qc.cx(0,1)
+  qc.p(0.44,qubit=1)
+  for iq in range(2): qc.sx(iq)
+  return qc
+
+
 #...!...!....................
 def circD(): # a random non-trivial 2Q circuit
     bell = QuantumCircuit(2)
@@ -42,8 +83,8 @@ def circD(): # a random non-trivial 2Q circuit
 def circE():
   qc = QuantumCircuit(3,3)
   qc.sx(0)
-  qc.s(1)
-  qc.h(0)
+  #qc.s(1)
+  #qc.h(0)
   qc.cx(0,1)
   qc.p(np.pi/3,qubit=2)
   qc.cx(1,2)
@@ -69,6 +110,7 @@ def print_dag_layers(qdag):
 
 #...!...!..................
 def _dag_to_qubic(qdag):
+    
     dagLay=qdag.layers()
     qubic_circ=[]
     nqubit=qdag.properties()['qubits']
@@ -85,17 +127,30 @@ def _dag_to_qubic(qdag):
             
             if op.name=='p':    
                 prephases[qL[0]]=prephases[qL[0]]+parV   #sums up consecutive phases
-                
+            
+            elif op.name == 'sx':
+                cycle.append({'name':'X90','qubitid' : str(qL), 'para':{'prephase': prephases[qL[0]]}})
+                prephases[qL[0]]=0
+   
             elif op.name=='cx':
-                cycle.append({'name':op.name,'qubitid' : 'q'+str(qL), 'para':[{'prephase': prephases[qL[0]]},{'prephase': prephases[qL[1]]}]})
+                cycle.append({'name': 'CNOT','qubitid' : str(qL), 'para':[{'prephase': prephases[qL[0]]},{'prephase': prephases[qL[1]]}]})
                 prephases[qL[0]]=0
                 prephases[qL[1]]=0
                 
-            else:
-                cycle.append({'name':op.name,'qubitid' : 'q'+str(qL), 'para':{'prephase': prephases[qL[0]]}})
-                prephases[qL[0]]=0
+            elif  op.name=='measure':
+                cycle.append({'name':'MEAS','qubitid' : str(qL)})
+
+            elif op.name == 'delay':
+                cycle.append({'name':'D','qubitid' : str(qL), 'para':{'delay': parV}})
+            
+            elif op.name=='barrier':
+                pass
+            
+            else :
+                raise Exception("Operation outside of basis p,sx,cx" )
                 
-        qubic_circ.append({'cycle':cycle})
+                
+        qubic_circ.append({'gates':cycle})
     
     return qubic_circ
 
@@ -133,7 +188,7 @@ provider = QUBICProvider()
 backend = provider.backends.qubic_backend
 
 #create the single circuit
-qc = circE()
+qc = circC()
 print('qc from Qiskit')
 print(qc)
 
@@ -145,7 +200,6 @@ pprint(qdag.properties())
 
 print('\nDecomposition of circuit DAG into cycles')
 print_dag_layers(qdag)
-
 
 #trans_qc = transpile(qcV, backend, basis_gates=['p','sx','cx'], optimization_level=1)
 print('\nOpenQASM format of circuit')
