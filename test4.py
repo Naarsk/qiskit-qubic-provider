@@ -51,7 +51,6 @@ def circB2():
   return qc
 
 
-
 #...!...!....................
 def circC():
   qc = QuantumCircuit(2)
@@ -107,6 +106,24 @@ def print_dag_layers(qdag):
 
   print('\nend-of-cycles') 
 
+def check_basis(qdag):
+    for op in qdag.properties()['operations']:
+       if op.name=='p':    
+           continue            
+       elif op.name == 'sx':
+           continue
+       elif op.name=='cx':
+           continue
+       elif  op.name=='measure':
+           continue
+       elif op.name == 'delay':
+           continue            
+       elif op.name=='barrier':
+               pass
+       else :
+               raise Exception("Operation outside of basis p,sx,cx" )
+    return 1
+
 
 #...!...!..................
 def _dag_to_qubic(qdag):
@@ -160,7 +177,8 @@ def _qasm_to_qubic(in_file,out_file):
     #CAN'T HANDLE MULTIPLE OPENQASM IN A SINGLE FILE
     
     qc= QuantumCircuit.from_qasm_file(in_file)    
-    qdag = circuit_to_dag(qc)    
+    qdag = circuit_to_dag(qc)
+    check_basis(qdag)             
     qubic_circ=_dag_to_qubic(qdag)              #circuit in qubic format
 
 
