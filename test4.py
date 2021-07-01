@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, transpile
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from pprint import pprint
 import sys,os
 import numpy as np
 sys.path.append(os.path.abspath("qubicProvider/"))
 from qubic_provider import QUBICProvider
+from qiskit_textbook.problems import grover_problem_oracle  #https://github.com/qiskit-community/qiskit-textbook
+
 #from qubic_job import QUBICJob
 #from qiskit.converters import circuit_to_instruction
 
@@ -51,6 +53,7 @@ def circB2():
   return qc
 
 
+
 #...!...!....................
 def circC():
   qc = QuantumCircuit(2)
@@ -80,18 +83,67 @@ def circD(): # a random non-trivial 2Q circuit
 
 #...!...!..................
 def circE():
-  qc = QuantumCircuit(3,3)
-  qc.sx(0)
-  #qc.s(1)
-  #qc.h(0)
-  qc.cx(0,1)
-  qc.p(np.pi/3,qubit=2)
-  qc.cx(1,2)
-  qc.sx(0)
-  qc.cx(0,1)
-  qc.barrier([0, 1,2])
-  for i in range(3): qc.measure(i,i)
-  return qc
+    qc = QuantumCircuit(3,3)
+    qc.sx(0)
+    qc.cx(0,1)
+    qc.p(np.pi/3,qubit=2)
+    qc.cx(1,2)
+    qc.sx(0)
+    qc.cx(0,1)
+    qc.barrier([0, 1,2])
+    for i in range(3): qc.measure(i,i)
+    return qc
+
+
+def diffuser(nqubits):
+    qc = QuantumCircuit(nqubits)
+    # Apply transformation |s> -> |00..0> (H-gates)
+    for qubit in range(nqubits):
+        qc.h(qubit)
+    # Apply transformation |00..0> -> |11..1> (X-gates)
+    for qubit in range(nqubits):
+        qc.x(qubit)
+    # Do multi-controlled-Z gate
+    qc.h(nqubits-1)
+    qc.mct(list(range(nqubits-1)), nqubits-1)  # multi-controlled-toffoli
+    qc.h(nqubits-1)
+    # Apply transformation |11..1> -> |00..0>
+    for qubit in range(nqubits):
+        qc.x(qubit)
+    # Apply transformation |00..0> -> |s>
+    for qubit in range(nqubits):
+        qc.h(qubit)
+    # We will return the diffuser as a gate
+    U_s = qc.to_gate()
+    U_s.name = "U$_s$"
+    return U_s
+
+def Grover():
+    n = 3
+    qc = QuantumCircuit(n)
+
+    for q in range(n):
+        qc.h(q)
+
+    oracle = grover_problem_oracle(n, variant=1)  # 0th variant of oracle, with n qubits
+    qc.append(oracle, [0,1,2])
+    qc.append(diffuser(n), [0,1,2])
+    qc.measure_all()
+    return transpile(qc, basis_gates=['p','sx','cx'], optimization_level=0)
+
+def Toffoli():
+    qc = QuantumCircuit(3)
+    qc.ccx(0,1,2)
+    return transpile(qc, basis_gates=['p','sx','cx'], optimization_level=0)
+
+    
+def Swap():
+    qc = QuantumCircuit(2)
+    qc.cx(1,0)
+    qc.cx(0,1)
+    qc.cx(1,0)
+    return qc
+
 
 #...!...!..................
 def print_dag_layers(qdag):
@@ -108,17 +160,17 @@ def print_dag_layers(qdag):
 
 def check_basis(qdag):
     for op in qdag.properties()['operations']:
-       if op.name=='p':    
+       if op=='p':    
            continue            
-       elif op.name == 'sx':
+       elif op == 'sx':
            continue
-       elif op.name=='cx':
+       elif op=='cx':
            continue
-       elif  op.name=='measure':
+       elif  op=='measure':
            continue
-       elif op.name == 'delay':
+       elif op == 'delay':
            continue            
-       elif op.name=='barrier':
+       elif op=='barrier':
                pass
        else :
                raise Exception("Operation outside of basis p,sx,cx" )
@@ -166,8 +218,10 @@ def _dag_to_qubic(qdag):
             else :
                 raise Exception("Operation outside of basis p,sx,cx" )
                 
-                
-        qubic_circ.append({'gates':cycle})
+        if len(cycle)!=0:
+            qubic_circ.append({'gates':cycle})
+        else:
+            pass
     
     return qubic_circ
 
@@ -206,7 +260,7 @@ provider = QUBICProvider()
 backend = provider.backends.qubic_backend
 
 #create the single circuit
-qc = circC()
+qc = Grover()
 print('qc from Qiskit')
 print(qc)
 
@@ -222,6 +276,8 @@ print_dag_layers(qdag)
 #trans_qc = transpile(qcV, backend, basis_gates=['p','sx','cx'], optimization_level=1)
 print('\nOpenQASM format of circuit')
 qc.qasm(formatted=True, filename='QasmPut.txt')  	#write QasmPut
+
+print('\nGrover')
 
 print('\nqc from OpenQASM file')
 new_qc=QuantumCircuit.from_qasm_file('QasmPut.txt')
