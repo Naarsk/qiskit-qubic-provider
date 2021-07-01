@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from qiskit import QuantumCircuit, transpile
-from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.converters import circuit_to_dag#, dag_to_circuit
 from pprint import pprint
 import sys,os
 import numpy as np
@@ -178,7 +178,7 @@ def check_basis(qdag):
 
 
 #...!...!..................
-def _dag_to_qubic(qdag):
+def _dag_to_qcref(qdag):
     
     dagLay=qdag.layers()
     qubic_circ=[]
@@ -198,19 +198,19 @@ def _dag_to_qubic(qdag):
                 prephases[qL[0]]=prephases[qL[0]]+parV   #sums up consecutive phases
             
             elif op.name == 'sx':
-                cycle.append({'name':'X90','qubitid' : str(qL), 'para':{'prephase': prephases[qL[0]]}})
+                cycle.append({'name':'X90','qubitid' : qL, 'para':{'prephase': prephases[qL[0]]}})
                 prephases[qL[0]]=0
    
             elif op.name=='cx':
-                cycle.append({'name': 'CNOT','qubitid' : str(qL), 'para':[{'prephase': prephases[qL[0]]},{'prephase': prephases[qL[1]]}]})
+                cycle.append({'name': 'CNOT','qubitid' : qL, 'para':[{'prephase': prephases[qL[0]]},{'prephase': prephases[qL[1]]}]})
                 prephases[qL[0]]=0
                 prephases[qL[1]]=0
                 
             elif  op.name=='measure':
-                cycle.append({'name':'MEAS','qubitid' : str(qL)})
+                cycle.append({'name':'MEAS','qubitid' :qL})
 
             elif op.name == 'delay':
-                cycle.append({'name':'D','qubitid' : str(qL), 'para':{'delay': parV}})
+                cycle.append({'name':'D','qubitid' : qL, 'para':{'delay': parV}})
             
             elif op.name=='barrier':
                 pass
@@ -226,26 +226,29 @@ def _dag_to_qubic(qdag):
     return qubic_circ
 
 
-def _qasm_to_qubic(in_file,out_file):  
+# =============================================================================
+# def _qasm_to_qcref(in_file,out_file):  
+# 
+#     #CAN'T HANDLE MULTIPLE OPENQASM IN A SINGLE FILE
+#     
+#     qc= QuantumCircuit.from_qasm_file(in_file)    
+#     qdag = circuit_to_dag(qc)
+#     check_basis(qdag)             
+#     qubic_circ=_dag_to_qcref(qdag)              #circuit in qubic format
+# 
+#     f=open(out_file,'w')
+#     f.write(str(qubic_circ))
+#     f.close()
+# 
+#     return
+# =============================================================================
 
-    #CAN'T HANDLE MULTIPLE OPENQASM IN A SINGLE FILE
-    
-    qc= QuantumCircuit.from_qasm_file(in_file)    
-    qdag = circuit_to_dag(qc)
-    check_basis(qdag)             
-    qubic_circ=_dag_to_qubic(qdag)              #circuit in qubic format
 
-
-    print('\nqc in qubic format')
-
-    for cycle in qubic_circ:
-        print(cycle)
-
-    f=open(out_file,'w')
-    f.write(str(qubic_circ))
-    f.close()
-
-    return
+def one_qiskit_to_qcref(qc):
+    qdag = circuit_to_dag(qc)           #convert the circuit into dag
+    check_basis(qdag)                   #check if there is any alien gate
+    qubic_circ=_dag_to_qcref(qdag)      #return the circuit in qcref format
+    return qubic_circ
 
 #=================================
 #=================================
@@ -264,23 +267,29 @@ qc = Grover()
 print('qc from Qiskit')
 print(qc)
 
-qdag = circuit_to_dag(qc)
-#qdag.draw()  # pop-up persistent ImagViewer  (not from Matplotlib)
 
-print('\nList DAG  properties:')
-pprint(qdag.properties())
+qubic_qc=one_qiskit_to_qcref(qc)		
+pprint(qubic_qc)
 
-print('\nDecomposition of circuit DAG into cycles')
-print_dag_layers(qdag)
+# =============================================================================
+# qdag = circuit_to_dag(qc)
+# #qdag.draw()  # pop-up persistent ImagViewer  (not from Matplotlib)
+# 
+# print('\nList DAG  properties:')
+# pprint(qdag.properties())
+# 
+# print('\nDecomposition of circuit DAG into cycles')
+# print_dag_layers(qdag)
+# 
+# #trans_qc = transpile(qcV, backend, basis_gates=['p','sx','cx'], optimization_level=1)
+# print('\nOpenQASM format of circuit')
+# qc.qasm(formatted=True, filename='QasmPut.txt')  	#write QasmPut
+# 
+# print('\nGrover')
+# 
+# print('\nqc from OpenQASM file')
+# new_qc=QuantumCircuit.from_qasm_file('QasmPut.txt')
+# print(new_qc)
+# =============================================================================
 
-#trans_qc = transpile(qcV, backend, basis_gates=['p','sx','cx'], optimization_level=1)
-print('\nOpenQASM format of circuit')
-qc.qasm(formatted=True, filename='QasmPut.txt')  	#write QasmPut
 
-print('\nGrover')
-
-print('\nqc from OpenQASM file')
-new_qc=QuantumCircuit.from_qasm_file('QasmPut.txt')
-print(new_qc)
-
-_qasm_to_qubic('QasmPut.txt','QubicPut.txt')		#read QasmPut, write QubicPut (also print on screen)
